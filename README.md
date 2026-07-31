@@ -1,2 +1,5 @@
-# bank-management-system-qt-cpp
-A modern desktop banking application built with Qt (C++) featuring account management, transactions, authentication, and an intuitive user interface.
+## 🎥 Demo Video
+
+Watch the complete project demonstration on LinkedIn:
+
+https://lnkd.in/p/d2JjWU9v
