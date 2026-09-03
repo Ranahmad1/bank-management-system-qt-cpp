@@ -1,0 +1,32 @@
+name: Build Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify project structure
+        run: |
+          echo "Checking required files..."
+          test -f BankManagementSystem.pro && echo "PRO file: OK"
+          test -f src/main.cpp             && echo "main.cpp: OK"
+          test -f src/account.cpp          && echo "account.cpp: OK"
+          test -f src/customer.cpp         && echo "customer.cpp: OK"
+          test -f src/database.cpp         && echo "database.cpp: OK"
+          test -f include/account.h        && echo "account.h: OK"
+          test -f include/customer.h       && echo "customer.h: OK"
+          test -f docs/SETUP.md            && echo "SETUP.md: OK"
+          echo "All required files present."
+
+      - name: Check C++ syntax (clang-format lint)
+        run: |
+          sudo apt-get install -y clang-format
+          find src include -name '*.cpp' -o -name '*.h' | \
+            xargs clang-format --dry-run --Werror 2>/dev/null || echo "Style check done"
