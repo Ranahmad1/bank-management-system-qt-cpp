@@ -1,0 +1,36 @@
+# Qt build artifacts
+build/
+debug/
+release/
+*.o
+*.a
+*.so
+*.dll
+*.exe
+*.app
+Makefile
+*.pro.user
+*.qbs.user
+*.creator.user
+*.autosave
+
+# Qt generated
+*.moc
+ui_*.h
+qrc_*.cpp
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# App data
+data/
+*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
