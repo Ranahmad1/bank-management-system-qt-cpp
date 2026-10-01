@@ -14,6 +14,12 @@ Customer::Customer(const QString &name, const QString &cnic,
 {
 }
 
+void Customer::restoreIdentity(const QString &id, const QDateTime &registeredAt)
+{
+    if (!id.isEmpty()) m_customerId = id;
+    if (registeredAt.isValid()) m_registeredAt = registeredAt;
+}
+
 bool Customer::addAccount(QSharedPointer<Account> account)
 {
     if (!account) return false;

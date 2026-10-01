@@ -1,5 +1,7 @@
 #include "../include/database.h"
 #include <QFile>
+#include <QSaveFile>
+#include <stdexcept>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -58,10 +60,16 @@ bool Database::saveCustomers(const QList<QSharedPointer<Customer>> &customers)
         array.append(obj);
     }
 
-    QFile file(m_dataPath + "/customers.json");
+    // QSaveFile writes to a temporary file and renames it on commit(), so a
+    // crash mid-write can no longer leave a truncated customers.json behind.
+    QDir().mkpath(m_dataPath);  // the folder may have been removed since startup
+    QSaveFile file(m_dataPath + "/customers.json");
     if (!file.open(QIODevice::WriteOnly)) return false;
-    file.write(QJsonDocument(array).toJson(QJsonDocument::Indented));
-    return true;
+    if (file.write(QJsonDocument(array).toJson(QJsonDocument::Indented)) < 0) {
+        file.cancelWriting();
+        return false;
+    }
+    return file.commit();
 }
 
 QList<QSharedPointer<Customer>> Database::loadCustomers()
@@ -82,6 +90,10 @@ QList<QSharedPointer<Customer>> Database::loadCustomers()
             obj["email"].toString(),
             obj["address"].toString()
         );
+        c->restoreIdentity(
+            obj["id"].toString(),
+            QDateTime::fromString(obj["registered"].toString(), Qt::ISODate)
+        );
 
         for (const auto &aVal : obj["accounts"].toArray()) {
             QJsonObject aObj = aVal.toObject();
@@ -89,10 +101,36 @@ QList<QSharedPointer<Customer>> Database::loadCustomers()
             if (aObj["type"].toString() == "Current") type = Account::Current;
             else if (aObj["type"].toString() == "Fixed Deposit") type = Account::Fixed;
 
-            auto acc = QSharedPointer<Account>::create(
-                aObj["number"].toString(), c->name(), type, aObj["balance"].toDouble()
-            );
-            c->addAccount(acc);
+            QList<Transaction> txns;
+            for (const auto &tVal : aObj["transactions"].toArray()) {
+                QJsonObject tObj = tVal.toObject();
+                Transaction t;
+                t.id           = tObj["id"].toString();
+                int rawType    = tObj["type"].toInt();
+                t.type         = (rawType >= Transaction::Deposit && rawType <= Transaction::Transfer)
+                                     ? static_cast<Transaction::Type>(rawType)
+                                     : Transaction::Deposit;
+                t.amount       = tObj["amount"].toDouble();
+                t.balanceAfter = tObj["balance"].toDouble();
+                t.description  = tObj["description"].toString();
+                t.timestamp    = QDateTime::fromString(tObj["timestamp"].toString(), Qt::ISODate);
+                txns.append(t);
+            }
+
+            try {
+                auto acc = QSharedPointer<Account>::create(
+                    aObj["number"].toString(), c->name(), type, aObj["balance"].toDouble()
+                );
+                acc->restoreState(
+                    QDateTime::fromString(aObj["created"].toString(), Qt::ISODate),
+                    aObj["active"].toBool(true),
+                    txns
+                );
+                c->addAccount(acc);
+            } catch (const std::invalid_argument &) {
+                // Corrupt record (e.g. negative balance): skip it instead of crashing on startup.
+                continue;
+            }
         }
         customers.append(c);
     }
