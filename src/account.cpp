@@ -63,9 +63,21 @@ bool Account::withdraw(double amount, const QString &description)
 
 bool Account::transfer(Account &target, double amount)
 {
+    // Validate everything up front so we never withdraw money that cannot be
+    // deposited (previously an inactive target silently swallowed the funds).
+    if (this == &target) return false;
+    if (!target.m_isActive) return false;
+
     if (!withdraw(amount, "Transfer to " + target.accountNumber())) return false;
-    target.deposit(amount, "Transfer from " + m_accountNumber);
-    return true;
+    return target.deposit(amount, "Transfer from " + m_accountNumber);
+}
+
+void Account::restoreState(const QDateTime &createdAt, bool active,
+                           const QList<Transaction> &transactions)
+{
+    if (createdAt.isValid()) m_createdAt = createdAt;
+    m_isActive = active;
+    m_transactions = transactions;
 }
 
 QString Account::accountTypeString() const

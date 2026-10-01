@@ -43,6 +43,10 @@ public:
     // Setters
     void setActive(bool active) { m_isActive = active; }
 
+    // Restore persisted state when loading from disk (does not touch the balance)
+    void restoreState(const QDateTime &createdAt, bool active,
+                      const QList<Transaction> &transactions);
+
 private:
     QString          m_accountNumber;
     QString          m_ownerName;

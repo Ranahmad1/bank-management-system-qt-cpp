@@ -28,6 +28,9 @@ public:
     QDateTime registeredAt() const { return m_registeredAt; }
     const QList<QSharedPointer<Account>>& accounts() const { return m_accounts; }
 
+    // Restore persisted identity when loading from disk
+    void restoreIdentity(const QString &id, const QDateTime &registeredAt);
+
     // Setters
     void setName(const QString &n)    { m_name = n; }
     void setPhone(const QString &p)   { m_phone = p; }
